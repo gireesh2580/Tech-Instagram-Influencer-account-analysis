@@ -1,0 +1,89 @@
+======================================================
+SELECT COUNT(DISTINCT post_type) AS unique_post_types
+FROM fact_content;
+======================================================
+SELECT 
+    post_type, 
+    MAX(impressions) AS max_impressions, 
+    MIN(impressions) AS min_impressions
+FROM fact_content
+GROUP BY post_type;
+======================================================
+SELECT *
+FROM fact_content AS c
+LEFT JOIN dim_dates AS d USING (date)
+WHERE month_name IN ('April', 'March') 
+  AND weekday_or_weekend = 'Weekend';
+======================================================
+SELECT 
+    d.month_name, 
+    SUM(a.profile_visits) AS total_profile_visits, 
+    SUM(a.new_followers) AS total_new_followers
+FROM fact_account a
+JOIN fact_content c USING (date)
+JOIN dim_dates d USING (date)
+GROUP BY d.month_name;
+======================================================
+WITH CTE1 AS (
+	SELECT
+		post_category,
+		SUM(likes) AS total_likes
+	FROM fact_content
+	JOIN dim_dates USING(date)
+	WHERE month_name="July"
+	GROUP BY post_category
+)
+SELECT
+	post_category,
+	total_likes
+FROM CTE1
+ORDER BY total_likes DESC;
+==========================================================================================
+SELECT
+	month_name,
+	GROUP_CONCAT(DISTINCT post_category Order BY post_category) AS post_category_name,
+    	COUNT(DISTINCT(post_category)) AS post_category_count
+FROM fact_content
+JOIN dim_dates
+USING(date)
+GROUP BY month_name;
+==========================================================================================
+SELECT
+	post_type,
+	SUM(reach) AS total_reach,
+   	ROUND(SUM(reach)/(SELECT SUM(reach) FROM fact_content)*100,2) AS reach_percentage
+FROM fact_content
+GROUP BY post_type
+ORDER BY total_reach DESC;
+==========================================================================================
+SELECT
+	post_category,
+	CASE
+		WHEN month_name IN ("January", "February", "March") THEN "Q1" 
+        	WHEN month_name IN ("April", "May", "June") THEN "Q2"
+        	WHEN month_name IN ("July", "August", "September") THEN "Q3"
+	END AS quarter,
+	SUM(comments) AS total_comments,
+    	SUM(saves) AS total_saves
+FROM fact_content
+JOIN dim_dates USING(date)
+GROUP BY post_category, quarter;
+=========================================================================================
+DELIMITER $$
+
+CREATE PROCEDURE gettotalshareforeachposttype (IN Week_Number INT)
+BEGIN
+    SELECT
+        post_type,
+        SUM(shares) AS total_shares
+    FROM fact_content
+    JOIN dim_dates USING(date)
+    WHERE week_no = CONCAT('W', Week_Number)
+    GROUP BY post_type
+    ORDER BY total_shares DESC;
+END $$
+
+DELIMITER ;
+========================================================================================
+
+    
